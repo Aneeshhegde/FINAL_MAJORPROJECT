@@ -184,7 +184,7 @@ async def analyze(req: AnalyzeRequest):
         yearly_trends.sort(key=lambda x: x['year'])
 
     # 9. Comparative District vs State Analytics
-    district_cost_per_day = float(total_expenditure / total_persondays) if total_persondays > 0 else 0.0
+    district_cost_per_day = float((total_expenditure * 100000.0) / total_persondays) if total_persondays > 0 else 0.0
     district_mat_ratio = float(total_materials / total_expenditure) if total_expenditure > 0 else 0.0
     district_wage_ratio = float(total_wages / total_expenditure) if total_expenditure > 0 else 0.0
     district_admin_ratio = float(total_admin / total_expenditure) if total_expenditure > 0 else 0.0
