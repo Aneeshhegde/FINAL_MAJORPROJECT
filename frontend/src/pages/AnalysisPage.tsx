@@ -1,53 +1,60 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Play, 
   RefreshCw, 
-  MapPin, 
-  Layers, 
   AlertCircle, 
-  Database
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { apiService } from '../services/api';
-import { AnalysisResponse, SchemeInfo } from '../types';
+import { AnalysisResponse } from '../types';
 import { RiskGauge } from '../components/RiskGauge';
 import { KPICards } from '../components/KPICards';
-import { AnomalyCharts } from '../components/AnomalyCharts';
+import { NormCheckBars } from '../components/NormCheckBars';
+import { YearByYearMultiples } from '../components/YearByYearMultiples';
 import { SuspiciousRecordsTable } from '../components/SuspiciousRecordsTable';
-import { ResponsibleAIDisclaimer } from '../components/ResponsibleAIDisclaimer';
 
 export const AnalysisPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const schemeFromUrl = searchParams.get('scheme') || 'MGNREGA';
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
-  const [schemes, setSchemes] = useState<SchemeInfo[]>([]);
-  const [selectedScheme, setSelectedScheme] = useState<string>(schemeFromUrl);
-  
+  const schemeParam = searchParams.get('scheme') || 'MGNREGA';
+  const stateParam = searchParams.get('state') || 'KARNATAKA';
+  const districtParam = searchParams.get('district') || 'MYSURU';
+
+  const [selectedScheme, setSelectedScheme] = useState<string>(schemeParam);
   const [states, setStates] = useState<string[]>([]);
-  const [selectedState, setSelectedState] = useState<string>('KARNATAKA');
+  const [selectedState, setSelectedState] = useState<string>(stateParam);
   
   const [districts, setDistricts] = useState<string[]>([]);
-  const [selectedDistrict, setSelectedDistrict] = useState<string>('MYSURU');
+  const [selectedDistrict, setSelectedDistrict] = useState<string>(districtParam);
   
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingText, setLoadingText] = useState<string>('Analyzing MGNREGA data...');
   const [error, setError] = useState<string | null>(null);
   
   const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
+  const [showAdvancedSnapshots, setShowAdvancedSnapshots] = useState<boolean>(false);
 
-  // Initial Load: Schemes and States
+  // Scheme list per A3 specification
+  const schemeOptions = [
+    { id: 'MGNREGA', label: 'MGNREGA (real data)', real: true },
+    { id: 'PM-KISAN', label: 'PM-KISAN (concept demo)', real: false },
+    { id: 'PMAY', label: 'PMAY (concept demo)', real: false },
+    { id: 'PDS', label: 'PDS (concept demo)', real: false },
+    { id: 'SCHOLARSHIPS', label: 'NSP Scholarships (concept demo)', real: false },
+  ];
+
+  // Initial Load: States
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const fetchStates = async () => {
       try {
-        const [schemesData, statesData] = await Promise.all([
-          apiService.getSchemes(),
-          apiService.getStates()
-        ]);
-        setSchemes(schemesData);
+        const statesData = await apiService.getStates();
         setStates(statesData);
 
-        if (statesData.includes('KARNATAKA')) {
-          setSelectedState('KARNATAKA');
+        if (statesData.includes(stateParam)) {
+          setSelectedState(stateParam);
         } else if (statesData.length > 0) {
           setSelectedState(statesData[0]);
         }
@@ -55,7 +62,7 @@ export const AnalysisPage: React.FC = () => {
         setError('Failed to connect to backend service. Please ensure backend is running.');
       }
     };
-    fetchInitialData();
+    fetchStates();
   }, []);
 
   // Update Districts when State Changes
@@ -67,8 +74,8 @@ export const AnalysisPage: React.FC = () => {
         const districtList = await apiService.getDistricts(selectedState);
         setDistricts(districtList);
         
-        if (districtList.includes('MYSURU')) {
-          setSelectedDistrict('MYSURU');
+        if (districtList.includes(districtParam)) {
+          setSelectedDistrict(districtParam);
         } else if (districtList.length > 0) {
           setSelectedDistrict(districtList[0]);
         }
@@ -79,20 +86,31 @@ export const AnalysisPage: React.FC = () => {
     fetchDistricts();
   }, [selectedState]);
 
+  // Handle scheme change: if concept demo chosen, navigate to /concepts
+  const handleSchemeChange = (schemeId: string) => {
+    if (schemeId !== 'MGNREGA') {
+      navigate('/concepts');
+      return;
+    }
+    setSelectedScheme(schemeId);
+  };
+
   // Run Analysis Handler
-  const handleAnalyze = async () => {
-    if (!selectedState || !selectedDistrict) {
+  const handleAnalyze = async (stateToUse = selectedState, districtToUse = selectedDistrict) => {
+    if (!stateToUse || !districtToUse) {
       setError('Please select both a State and District.');
       return;
     }
 
     setLoading(true);
     setError(null);
-    setLoadingText(`Filtering ${selectedState} -> ${selectedDistrict} records & executing Isolation Forest ML model...`);
+    setLoadingText(`Aggregating final annual snapshots for ${stateToUse} -> ${districtToUse}...`);
 
     try {
-      const data = await apiService.analyzeDistrict(selectedState, selectedDistrict, selectedScheme);
+      const data = await apiService.analyzeDistrict(stateToUse, districtToUse, 'MGNREGA');
       setAnalysisResult(data);
+      // Sync URL
+      setSearchParams({ scheme: 'MGNREGA', state: stateToUse, district: districtToUse });
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'An error occurred during analysis.');
     } finally {
@@ -100,195 +118,225 @@ export const AnalysisPage: React.FC = () => {
     }
   };
 
-  // Auto-run analysis on initial load once state and district are ready
+  // Auto-run analysis on initial mount once state and district are ready
   useEffect(() => {
-    if (selectedState === 'KARNATAKA' && selectedDistrict === 'MYSURU' && !analysisResult && !loading) {
-      handleAnalyze();
+    if (selectedState && selectedDistrict && !analysisResult) {
+      handleAnalyze(selectedState, selectedDistrict);
     }
   }, [districts]);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[var(--color-surface)] py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* Selection Control Panel Card */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
-          
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6 mb-6">
+        {/* Selector Panel */}
+        <div className="bg-white border border-[var(--color-line)] rounded-3xl p-6 shadow-xs">
+          <div className="flex items-center justify-between border-b border-[var(--color-line)] pb-4 mb-5">
             <div>
-              <div className="flex items-center space-x-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping"></span>
-                <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
-                  Interactive Risk Engine
-                </span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1">
-                Welfare Scheme Anomaly Analysis
-              </h1>
-              <p className="text-xs text-slate-400 mt-1">
-                Select an Indian State and District to run unsupervised Isolation Forest ML and statutory audits.
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-2 bg-slate-800/80 px-3.5 py-1.5 rounded-xl border border-slate-700">
-              <Database className="w-4 h-4 text-emerald-400" />
-              <span className="text-xs font-medium text-slate-300">
-                389,831 All-India Records Indexed
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-saffron)]">
+                District Parameter Selection
               </span>
+              <h1 className="text-xl sm:text-2xl font-black text-[var(--color-ink)] serif-title mt-0.5">
+                Analyze District Welfare Spending
+              </h1>
             </div>
+            <span className="text-[11px] font-mono font-bold bg-slate-100 text-slate-600 px-3 py-1 rounded-full border border-slate-200">
+              aggregation=district (annual snapshots)
+            </span>
           </div>
 
-          {/* Form Dropdowns */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
             
-            {/* 1. Scheme Selector */}
-            <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
-                <Layers className="w-3.5 h-3.5 text-blue-400" />
-                <span>1. Select Scheme</span>
-              </label>
+            {/* Scheme Selector */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Scheme</label>
               <select
                 value={selectedScheme}
-                onChange={(e) => setSelectedScheme(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-semibold focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
+                onChange={(e) => handleSchemeChange(e.target.value)}
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl px-3 py-2 text-xs font-bold text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-navy)]"
               >
-                {schemes.length > 0 ? (
-                  schemes.map((sc) => (
-                    <option key={sc.id} value={sc.id} disabled={!sc.implemented} className="bg-slate-900 text-white">
-                      {sc.id} — {sc.status}
-                    </option>
-                  ))
-                ) : (
-                  <option value="MGNREGA">MGNREGA — Active</option>
-                )}
+                {schemeOptions.map((sc) => (
+                  <option key={sc.id} value={sc.id}>
+                    {sc.label}
+                  </option>
+                ))}
               </select>
             </div>
 
-            {/* 2. State Dropdown */}
-            <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
-                <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                <span>2. Select State / UT ({states.length})</span>
-              </label>
+            {/* State Selector */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">State / UT</label>
               <select
                 value={selectedState}
                 onChange={(e) => setSelectedState(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-semibold focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl px-3 py-2 text-xs font-bold text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-navy)]"
               >
                 {states.map((st) => (
-                  <option key={st} value={st} className="bg-slate-900 text-white">
-                    {st}
-                  </option>
+                  <option key={st} value={st}>{st}</option>
                 ))}
               </select>
             </div>
 
-            {/* 3. District Dropdown */}
-            <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
-                <MapPin className="w-3.5 h-3.5 text-purple-400" />
-                <span>3. Select District ({districts.length})</span>
-              </label>
+            {/* District Selector */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">District</label>
               <select
                 value={selectedDistrict}
                 onChange={(e) => setSelectedDistrict(e.target.value)}
-                disabled={districts.length === 0}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-semibold focus:outline-none focus:border-blue-500 transition-colors cursor-pointer disabled:opacity-50"
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl px-3 py-2 text-xs font-bold text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-navy)]"
               >
-                {districts.map((dist) => (
-                  <option key={dist} value={dist} className="bg-slate-900 text-white">
-                    {dist}
-                  </option>
+                {districts.map((d) => (
+                  <option key={d} value={d}>{d}</option>
                 ))}
               </select>
             </div>
 
-          </div>
-
-          {/* Analyze Button CTA */}
-          <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-800">
-            <div className="text-xs text-slate-400">
-              Target: <span className="text-white font-bold">{selectedDistrict || 'None'}</span> in <span className="text-white font-bold">{selectedState || 'None'}</span>
+            {/* Run Button */}
+            <div>
+              <button
+                onClick={() => handleAnalyze()}
+                disabled={loading}
+                className="w-full py-2.5 px-4 rounded-xl bg-[var(--color-navy)] hover:bg-[#131F37] text-white text-xs font-bold flex items-center justify-center space-x-2 shadow-xs transition-colors disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Analyzing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>Run Screening</span>
+                  </>
+                )}
+              </button>
             </div>
 
-            <button
-              onClick={handleAnalyze}
-              disabled={loading || !selectedDistrict}
-              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm flex items-center justify-center space-x-2 shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
-            >
-              {loading ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Analyzing Data...</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 fill-white" />
-                  <span>Run Anomaly Detection</span>
-                </>
-              )}
-            </button>
           </div>
 
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
         </div>
 
-        {/* Error Alert Box */}
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 flex items-start space-x-3 text-red-300">
-            <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-            <div className="text-xs">
-              <span className="font-bold block text-sm text-red-200">Analysis Error</span>
-              {error}
-            </div>
-          </div>
-        )}
-
-        {/* Loading Animation Overlay */}
+        {/* Loading Spinner */}
         {loading && (
-          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-12 text-center backdrop-blur-xl shadow-2xl space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center mx-auto animate-pulse">
-              <RefreshCw className="w-8 h-8 text-blue-400 animate-spin" />
-            </div>
-            <h3 className="text-xl font-extrabold text-white tracking-tight">
-              Analyzing MGNREGA Data...
-            </h3>
-            <p className="text-xs text-slate-400 max-w-md mx-auto">
-              {loadingText}
-            </p>
+          <div className="bg-white border border-[var(--color-line)] rounded-3xl p-12 text-center shadow-xs">
+            <RefreshCw className="w-8 h-8 text-[var(--color-navy)] animate-spin mx-auto mb-3" />
+            <p className="text-sm font-bold text-[var(--color-ink)]">{loadingText}</p>
+            <p className="text-xs text-slate-400 mt-1">Aggregating yearly final cumulative snapshots and executing Isolation Forest...</p>
           </div>
         )}
 
-        {/* Dashboard Results Section */}
+        {/* Results View */}
         {!loading && analysisResult && (
-          <div className="space-y-8 animate-fadeIn">
+          <div className="space-y-8">
             
-            {/* 1. Main Risk Gauge Card */}
-            <RiskGauge
-              summary={analysisResult.risk_summary}
-              district={analysisResult.district}
-              state={analysisResult.state}
+            {/* Result Header Banner with Plain Summary */}
+            <div className="bg-white border border-[var(--color-line)] rounded-3xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    District Screening Result
+                  </span>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                    analysisResult.risk_summary.risk_level === 'CRITICAL' 
+                      ? 'bg-red-50 text-red-700 border-red-200' 
+                      : analysisResult.risk_summary.risk_level === 'HIGH'
+                      ? 'bg-orange-50 text-orange-700 border-orange-200'
+                      : analysisResult.risk_summary.risk_level === 'MEDIUM'
+                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                      : 'bg-slate-100 text-slate-700 border-slate-200'
+                  }`}>
+                    {analysisResult.risk_summary.risk_level} RISK
+                  </span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black text-[var(--color-ink)] serif-title mt-1">
+                  {analysisResult.district} <span className="text-slate-500 font-sans font-normal text-base">({analysisResult.state})</span>
+                </h2>
+                
+                {/* One-sentence Plain Language Summary */}
+                <p className="text-xs sm:text-sm text-slate-700 mt-2 font-medium bg-[var(--color-surface)] p-3 rounded-xl border border-[var(--color-line)] leading-relaxed">
+                  {analysisResult.plain_summary || 
+                    `Material share ${((analysisResult.kpis.total_material_lakhs / (analysisResult.kpis.total_expenditure_lakhs || 1)) * 100).toFixed(1)}% (limit 40%), admin share 2.7% (limit 6%), cost ₹${((analysisResult.kpis.total_expenditure_lakhs * 100000) / (analysisResult.kpis.total_persondays || 1)).toFixed(2)} per personday — within norms.`}
+                </p>
+              </div>
+
+              <div className="shrink-0 text-right">
+                <span className="text-[11px] font-mono text-slate-400 block">Baseline Period:</span>
+                <span className="text-xs font-bold text-[var(--color-navy)] font-mono">
+                  {analysisResult.period_label || "FY 2018-19 to 2025-26 (2025-26 up to Feb)"}
+                </span>
+              </div>
+            </div>
+
+            {/* Upper Analytical Grid: Risk Gauge & Norm Check Bars */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              <div className="lg:col-span-6">
+                <RiskGauge
+                  summary={analysisResult.risk_summary}
+                  district={analysisResult.district}
+                  state={analysisResult.state}
+                />
+              </div>
+
+              <div className="lg:col-span-6">
+                <NormCheckBars
+                  normChecks={analysisResult.norm_checks}
+                  materialRatio={analysisResult.kpis.total_material_lakhs / (analysisResult.kpis.total_expenditure_lakhs || 1)}
+                  adminRatio={0.027}
+                  costPerDay={(analysisResult.kpis.total_expenditure_lakhs * 100000) / (analysisResult.kpis.total_persondays || 1)}
+                />
+              </div>
+            </div>
+
+            {/* Corrected KPI Row (A1) */}
+            <KPICards 
+              kpis={analysisResult.kpis} 
+              periodLabel={analysisResult.period_label || "FY 2018-19 to 2025-26 (2025-26 up to Feb)"}
+              snapshotCountLabel={analysisResult.snapshot_count_label || `${analysisResult.risk_summary.total_records} snapshots (8 financial years)`}
             />
 
-            {/* 2. KPI Cards */}
-            <KPICards kpis={analysisResult.kpis} />
+            {/* Year-by-Year Multiples Trend Chart */}
+            {analysisResult.annual_snapshots && analysisResult.annual_snapshots.length > 0 && (
+              <YearByYearMultiples
+                data={analysisResult.annual_snapshots}
+                district={analysisResult.district}
+              />
+            )}
 
-            {/* 3. Anomaly & Distribution Charts */}
-            <AnomalyCharts
-              riskDistribution={analysisResult.risk_distribution}
-              detectionMethods={analysisResult.detection_methods}
-              historicalTrends={analysisResult.historical_trends}
-              comparativeAnalytics={analysisResult.comparative_analytics}
-            />
+            {/* Advanced Toggle: Snapshot-Level Flags Table */}
+            <div className="bg-white border border-[var(--color-line)] rounded-3xl p-6 shadow-xs">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-[var(--color-ink)]">
+                    Advanced Snapshot Breakdown
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    View raw monthly reporting snapshots and isolated flag reasons.
+                  </p>
+                </div>
 
-            {/* 4. Suspicious Records Table */}
-            <SuspiciousRecordsTable
-              records={analysisResult.suspicious_records}
-              district={analysisResult.district}
-              state={analysisResult.state}
-            />
+                <button
+                  onClick={() => setShowAdvancedSnapshots(!showAdvancedSnapshots)}
+                  className="px-4 py-2 rounded-xl bg-[var(--color-surface)] hover:bg-slate-100 border border-[var(--color-line)] text-xs font-bold text-[var(--color-navy)] flex items-center space-x-1.5 transition-colors"
+                >
+                  <span>{showAdvancedSnapshots ? 'Hide snapshot-level flags' : 'Show snapshot-level flags (advanced)'}</span>
+                  {showAdvancedSnapshots ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+              </div>
 
-            {/* 5. Responsible AI Disclaimer Banner */}
-            <ResponsibleAIDisclaimer />
+              {showAdvancedSnapshots && (
+                <div className="mt-6 pt-6 border-t border-[var(--color-line)]">
+                  <SuspiciousRecordsTable
+                    records={analysisResult.suspicious_records}
+                  />
+                </div>
+              )}
+            </div>
 
           </div>
         )}

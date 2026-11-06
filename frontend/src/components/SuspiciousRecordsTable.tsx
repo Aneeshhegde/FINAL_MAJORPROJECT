@@ -6,21 +6,18 @@ import {
   Search, 
   Filter, 
   ChevronLeft, 
-  ChevronRight,
-  FileSpreadsheet
+  ChevronRight
 } from 'lucide-react';
 import { SuspiciousRecord } from '../types';
 
 interface SuspiciousRecordsTableProps {
   records: SuspiciousRecord[];
-  district: string;
-  state: string;
+  district?: string;
+  state?: string;
 }
 
 export const SuspiciousRecordsTable: React.FC<SuspiciousRecordsTableProps> = ({ 
-  records, 
-  district, 
-  state 
+  records
 }) => {
   const [search, setSearch] = useState('');
   const [riskFilter, setRiskFilter] = useState<string>('ALL');
@@ -47,13 +44,13 @@ export const SuspiciousRecordsTable: React.FC<SuspiciousRecordsTableProps> = ({
   const getRiskBadge = (level: string) => {
     switch (level) {
       case 'CRITICAL':
-        return 'bg-red-500/20 text-red-300 border-red-500/40';
+        return 'bg-red-50 text-red-700 border-red-200';
       case 'HIGH':
-        return 'bg-orange-500/20 text-orange-300 border-orange-500/40';
+        return 'bg-orange-50 text-orange-700 border-orange-200';
       case 'MEDIUM':
-        return 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+        return 'bg-amber-50 text-amber-700 border-amber-200';
       default:
-        return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+        return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
 
@@ -61,268 +58,195 @@ export const SuspiciousRecordsTable: React.FC<SuspiciousRecordsTableProps> = ({
     setExpandedId(expandedId === id ? null : id);
   };
 
-  // CSV Export
-  const exportCSV = () => {
-    if (records.length === 0) return;
-    const headers = [
-      "Record ID", "Financial Year", "Month", "State", "District", 
-      "Total Exp (₹ Lakhs)", "Wages (₹ Lakhs)", "Material Exp (₹ Lakhs)", 
-      "Persondays", "Cost/Day (₹)", "Material Ratio", "Wage Ratio", 
-      "Anomaly Score", "Risk Level", "Explanation"
-    ];
-    
-    const rows = records.map(r => [
-      r.record_id, r.financial_year, r.month, r.state, r.district,
-      r.total_exp, r.wages, r.material_exp, r.persondays, r.cost_per_day,
-      r.material_ratio, r.wage_ratio, r.ml_anomaly_score, r.risk_level,
-      `"${r.explanation.replace(/"/g, '""')}"`
-    ]);
-
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `mgnrega_anomalies_${state}_${district}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   return (
-    <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 backdrop-blur-md shadow-xl">
+    <div className="bg-white border border-[var(--color-line)] rounded-3xl p-6 shadow-xs space-y-4">
       
-      {/* Table Header & Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      {/* Table Header Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--color-line)] pb-4">
         <div>
           <div className="flex items-center space-x-2">
-            <h3 className="text-xl font-bold text-white tracking-tight">
-              Suspicious Records & Anomaly Audit Log
+            <h3 className="text-base font-bold text-[var(--color-ink)]">
+              Flagged Snapshots (Snapshot-Level Screening)
             </h3>
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-              {filteredRecords.length} Flagged
+            <span className="text-[11px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">
+              {filteredRecords.length} flagged
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Records flagged by Isolation Forest decision scores and statutory compliance rules with plain-language explanations.
+          <p className="text-xs text-slate-500 mt-0.5">
+            Individual cumulative snapshots flagged by statutory rule breaches or machine learning anomaly scores.
           </p>
         </div>
 
-        {/* Action Buttons */}
+        {/* Search and Filters */}
         <div className="flex flex-wrap items-center gap-3">
-          {/* Search Input */}
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search ID, year, reason..."
+              placeholder="Search snapshots..."
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-              className="bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 w-48 sm:w-56"
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-8 pr-3 py-1.5 text-xs bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--color-navy)] w-44"
             />
           </div>
 
-          {/* Risk Level Filter */}
-          <div className="flex items-center space-x-1.5 bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1">
-            <Filter className="w-3.5 h-3.5 text-slate-400" />
+          <div className="flex items-center space-x-1.5 bg-[var(--color-surface)] px-2.5 py-1.5 rounded-xl border border-[var(--color-line)] text-xs">
+            <Filter className="w-3.5 h-3.5 text-slate-500" />
             <select
               value={riskFilter}
-              onChange={(e) => { setRiskFilter(e.target.value); setCurrentPage(1); }}
-              className="bg-transparent text-xs text-slate-200 font-medium focus:outline-none cursor-pointer"
+              onChange={(e) => {
+                setRiskFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="bg-transparent font-bold text-slate-700 focus:outline-none"
             >
-              <option value="ALL" className="bg-slate-900 text-white">All Severities</option>
-              <option value="CRITICAL" className="bg-slate-900 text-red-400">Critical Risk</option>
-              <option value="HIGH" className="bg-slate-900 text-orange-400">High Risk</option>
-              <option value="MEDIUM" className="bg-slate-900 text-amber-400">Medium Risk</option>
-              <option value="LOW" className="bg-slate-900 text-emerald-400">Low Risk</option>
+              <option value="ALL">All Tiers</option>
+              <option value="CRITICAL">Critical</option>
+              <option value="HIGH">High</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="LOW">Low</option>
             </select>
           </div>
-
-          {/* Export Button */}
-          <button
-            onClick={exportCSV}
-            className="flex items-center space-x-1.5 bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 border border-blue-500/20 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            <span>Export CSV</span>
-          </button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto border border-slate-800 rounded-xl">
-        <table className="w-full text-left text-xs text-slate-300">
-          <thead className="bg-slate-800/80 text-slate-400 font-semibold border-b border-slate-800 uppercase tracking-wider">
-            <tr>
-              <th className="py-3 px-4">Record ID</th>
-              <th className="py-3 px-3">Period</th>
-              <th className="py-3 px-3">Expenditure</th>
-              <th className="py-3 px-3">Wages vs Material</th>
-              <th className="py-3 px-3">Cost / Day</th>
-              <th className="py-3 px-3">Anomaly Score</th>
-              <th className="py-3 px-3">Risk Level</th>
-              <th className="py-3 px-4 text-center">Explanation</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800">
-            {paginatedRecords.length > 0 ? (
-              paginatedRecords.map((rec) => {
+      {/* Records Table */}
+      {paginatedRecords.length === 0 ? (
+        <div className="py-12 text-center text-slate-400 text-xs">
+          No snapshots match the current filters.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-[var(--color-line)] text-slate-500 font-bold uppercase tracking-wider">
+                <th className="py-3 px-3">Snapshot ID</th>
+                <th className="py-3 px-3">Financial Year</th>
+                <th className="py-3 px-3">Month</th>
+                <th className="py-3 px-3">Risk Tier</th>
+                <th className="py-3 px-3 text-right">Anomaly Score</th>
+                <th className="py-3 px-3 text-right">Material %</th>
+                <th className="py-3 px-3 text-right">Admin %</th>
+                <th className="py-3 px-3 text-right">Cost / Day</th>
+                <th className="py-3 px-3 text-center">Audit Details</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--color-line)]">
+              {paginatedRecords.map((rec) => {
                 const isExpanded = expandedId === rec.record_id;
+                const score = rec.anomaly_score ?? rec.ml_anomaly_score ?? 0;
+                const adminRatio = rec.admin_ratio ?? (rec.admin_exp && rec.total_exp ? rec.admin_exp / rec.total_exp : 0);
+
                 return (
                   <React.Fragment key={rec.record_id}>
-                    <tr className="hover:bg-slate-800/40 transition-colors">
-                      <td className="py-3 px-4 font-mono font-medium text-blue-400">
+                    <tr 
+                      onClick={() => toggleExpand(rec.record_id)}
+                      className="hover:bg-slate-50/70 cursor-pointer transition-colors"
+                    >
+                      <td className="py-3 px-3 font-mono font-bold text-slate-600">
                         {rec.record_id}
                       </td>
-                      <td className="py-3 px-3 font-medium text-white">
-                        {rec.month} {rec.financial_year}
+                      <td className="py-3 px-3 font-medium text-slate-700">
+                        {rec.financial_year}
                       </td>
-                      <td className="py-3 px-3 font-semibold text-white">
-                        ₹{rec.total_exp.toLocaleString()} L
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="text-[11px]">
-                          <span className="text-emerald-400">Wage: {(rec.wage_ratio * 100).toFixed(0)}%</span>
-                          <span className="text-slate-500 mx-1">|</span>
-                          <span className={rec.material_ratio > 0.40 ? 'text-red-400 font-bold' : 'text-slate-400'}>
-                            Mat: {(rec.material_ratio * 100).toFixed(0)}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-3 font-medium">
-                        <span className={rec.cost_per_day > 450 ? 'text-amber-400 font-bold' : 'text-slate-300'}>
-                          ₹{rec.cost_per_day.toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-bold text-white">{rec.ml_anomaly_score}</span>
-                          <div className="w-12 bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                            <div 
-                              className={`h-full rounded-full ${
-                                rec.ml_anomaly_score >= 80 ? 'bg-red-500' :
-                                rec.ml_anomaly_score >= 60 ? 'bg-orange-500' :
-                                rec.ml_anomaly_score >= 35 ? 'bg-amber-500' : 'bg-emerald-500'
-                              }`}
-                              style={{ width: `${rec.ml_anomaly_score}%` }}
-                            />
-                          </div>
-                        </div>
+                      <td className="py-3 px-3 text-slate-600">
+                        {rec.month}
                       </td>
                       <td className="py-3 px-3">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${getRiskBadge(rec.risk_level)}`}>
                           {rec.risk_level}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-center">
-                        <button
-                          onClick={() => toggleExpand(rec.record_id)}
-                          className="inline-flex items-center space-x-1 text-xs text-blue-400 hover:text-blue-300 font-semibold px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20 transition-colors"
-                        >
-                          <span>{isExpanded ? 'Hide' : 'Explain'}</span>
-                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      <td className="py-3 px-3 text-right font-bold text-[var(--color-ink)] tabular-nums">
+                        {score.toFixed(1)} / 100
+                      </td>
+                      <td className={`py-3 px-3 text-right tabular-nums font-medium ${rec.material_ratio > 0.40 ? 'text-red-700 font-bold' : 'text-slate-700'}`}>
+                        {(rec.material_ratio * 100).toFixed(1)}%
+                      </td>
+                      <td className={`py-3 px-3 text-right tabular-nums font-medium ${adminRatio > 0.06 ? 'text-amber-700 font-bold' : 'text-slate-700'}`}>
+                        {(adminRatio * 100).toFixed(1)}%
+                      </td>
+                      <td className={`py-3 px-3 text-right tabular-nums font-medium ${rec.cost_per_day > 450 ? 'text-red-700 font-bold' : 'text-slate-700'}`}>
+                        ₹{rec.cost_per_day.toFixed(1)}
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <button className="text-slate-400 hover:text-[var(--color-navy)] transition-colors">
+                          {isExpanded ? <ChevronUp className="w-4 h-4 mx-auto" /> : <ChevronDown className="w-4 h-4 mx-auto" />}
                         </button>
                       </td>
                     </tr>
 
-                    {/* Expandable Explanation Drawer */}
+                    {/* Expandable Explanation Row */}
                     {isExpanded && (
-                      <tr className="bg-slate-800/60 border-y border-slate-700/80">
-                        <td colSpan={8} className="p-4 sm:p-5">
-                          <div className="bg-slate-900/90 border border-slate-700/80 rounded-xl p-4">
-                            <div className="flex items-start space-x-3">
-                              <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                              <div className="flex-1">
-                                <h4 className="text-sm font-bold text-white tracking-tight flex items-center space-x-2">
-                                  <span>Statistical & Rule-Based Rationales</span>
-                                  <span className="text-[11px] font-normal text-slate-400">
-                                    (Why was this record flagged?)
-                                  </span>
-                                </h4>
-                                
-                                <p className="text-xs text-slate-300 font-medium mt-1">
+                      <tr className="bg-slate-50/80">
+                        <td colSpan={9} className="p-4 border-b border-[var(--color-line)]">
+                          <div className="space-y-3">
+                            <div className="flex items-start space-x-2">
+                              <AlertCircle className="w-4 h-4 text-[var(--color-saffron)] mt-0.5 shrink-0" />
+                              <div>
+                                <span className="font-bold text-[var(--color-ink)]">Screening Explanation:</span>
+                                <p className="text-slate-700 mt-0.5 leading-relaxed">
                                   {rec.explanation}
                                 </p>
-
-                                {/* Detailed Reasons List */}
-                                {rec.detailed_reasons.length > 1 && (
-                                  <div className="mt-3 space-y-1">
-                                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                                      Supporting Evidence:
-                                    </span>
-                                    <ul className="list-disc list-inside space-y-1 text-xs text-slate-300">
-                                      {rec.detailed_reasons.slice(1).map((r, i) => (
-                                        <li key={i}>{r}</li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
-
-                                {/* Key Feature Drivers */}
-                                {rec.key_drivers && rec.key_drivers.length > 0 && (
-                                  <div className="mt-4 pt-3 border-t border-slate-800">
-                                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">
-                                      Feature Drivers & Standard Deviation Deviations (Z-Scores):
-                                    </span>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                      {rec.key_drivers.map((drv, i) => (
-                                        <div key={i} className="bg-slate-800/80 border border-slate-700 rounded-lg p-2.5">
-                                          <div className="flex items-center justify-between text-[11px]">
-                                            <span className="font-semibold text-slate-300">{drv.label}</span>
-                                            <span className={`font-bold ${drv.impact === 'High' ? 'text-red-400' : 'text-amber-400'}`}>
-                                              {drv.z_score > 0 ? `+${drv.z_score}σ` : `${drv.z_score}σ`}
-                                            </span>
-                                          </div>
-                                          <div className="text-[10px] text-slate-400 mt-1">
-                                            Value: {drv.feature === 'cost_per_day' ? `₹${drv.value.toLocaleString()}` : `${(drv.value * 100).toFixed(1)}%`} | State Avg: {drv.feature === 'cost_per_day' ? `₹${drv.state_avg.toLocaleString()}` : `${(drv.state_avg * 100).toFixed(1)}%`}
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-
                               </div>
                             </div>
+
+                            {/* Key drivers or reasons */}
+                            {rec.key_drivers && rec.key_drivers.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-slate-200">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                  Metric Deviations:
+                                </span>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 mt-2">
+                                  {rec.key_drivers.map((c, ci) => (
+                                    <div key={ci} className="bg-white p-2.5 rounded-xl border border-slate-200">
+                                      <div className="flex items-center justify-between text-[11px]">
+                                        <span className="font-medium text-slate-600 truncate">{c.label || c.feature}</span>
+                                        <span className="font-mono font-bold text-[var(--color-navy)]">
+                                          {c.z_score > 0 ? `+${c.z_score.toFixed(2)}σ` : `${c.z_score.toFixed(2)}σ`}
+                                        </span>
+                                      </div>
+                                      <div className="w-full bg-slate-100 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                        <div 
+                                          className={`h-full rounded-full ${Math.abs(c.z_score) > 2 ? 'bg-red-500' : 'bg-[var(--color-navy)]'}`}
+                                          style={{ width: `${Math.min(100, Math.abs(c.z_score) * 25)}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>
                     )}
                   </React.Fragment>
                 );
-              })
-            ) : (
-              <tr>
-                <td colSpan={8} className="py-8 text-center text-slate-500 text-sm">
-                  No records match the current filter or search criteria.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Pagination Controls */}
-      <div className="flex items-center justify-between mt-4 text-xs text-slate-400">
-        <div>
-          Showing {filteredRecords.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} to{' '}
-          {Math.min(currentPage * pageSize, filteredRecords.length)} of {filteredRecords.length} records
-        </div>
-
+      <div className="flex items-center justify-between pt-3 border-t border-[var(--color-line)] text-xs text-slate-500">
+        <span>Page {currentPage} of {totalPages}</span>
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-700 transition-colors"
+            className="p-1.5 rounded-lg border border-[var(--color-line)] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="font-medium text-slate-200">
-            Page {currentPage} of {totalPages}
-          </span>
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-700 transition-colors"
+            className="p-1.5 rounded-lg border border-[var(--color-line)] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <ChevronRight className="w-4 h-4" />
           </button>

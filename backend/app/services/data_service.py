@@ -92,6 +92,35 @@ class DataService:
         mask = (self._df['state_name'] == state_upper) & (self._df['district_name'] == district_upper)
         return self._df[mask].copy()
 
+    @staticmethod
+    def extract_annual_snapshots(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        For each (district, fin_year) or fin_year, takes the FINAL cumulative snapshot
+        = row with maximum Persondays_of_Central_Liability_so_far (tie-break: max Total_Exp).
+        Requires Total_Exp > 0 and Persondays_of_Central_Liability_so_far > 0.
+        """
+        if df is None or df.empty:
+            return pd.DataFrame()
+        
+        # Columns are already numeric from _load_dataset
+        mask = (df['Total_Exp'] > 0) & (df['Persondays_of_Central_Liability_so_far'] > 0)
+        valid = df[mask]
+        if valid.empty:
+            return pd.DataFrame()
+
+        if 'district_name' in valid.columns and valid['district_name'].nunique() > 1:
+            group_cols = ['district_name', 'fin_year']
+        else:
+            group_cols = ['fin_year']
+
+        sort_cols = group_cols + ['Persondays_of_Central_Liability_so_far', 'Total_Exp']
+        sorted_df = valid.sort_values(by=sort_cols)
+        return sorted_df.groupby(group_cols, as_index=False, observed=True).last()
+
+    def get_district_annual_snapshots(self, state: str, district: str) -> pd.DataFrame:
+        df_dist = self.get_district_records(state, district)
+        return self.extract_annual_snapshots(df_dist)
+
     def get_state_records(self, state: str) -> pd.DataFrame:
         if self._df is None or len(self._df) == 0:
             return pd.DataFrame()

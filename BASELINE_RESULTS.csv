@@ -1,0 +1,6 @@
+Model / Methodology,Precision (%),Recall (%),F1-Score (%),Accuracy (%),ROC-AUC (%),False Positives,False Negatives,Hyperparameters
+Rule-Based Statutory Check,100.0,100.0,100.0,100.0,100.0,0,0,"Statutory thresholds (40%, 10%, ₹450)"
+Standard Isolation Forest,76.74,61.95,68.56,83.47,81.4,20673,41898,"n_estimators=100, contamination=0.07"
+Local Outlier Factor (LOF),56.06,13.58,21.87,71.96,56.52,769,6241,"n_neighbors=20, contamination=0.07"
+One-Class SVM (OC-SVM),67.4,16.44,26.43,73.56,55.12,574,6035,"kernel=rbf, nu=0.07, gamma=scale"
+GovGuard AI (Calibrated Hybrid),91.92,80.86,86.04,92.37,81.4,7826,21069,"iTrees=100, tau=-0.0150, two-stage statutory confirmation"

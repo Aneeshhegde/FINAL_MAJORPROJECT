@@ -26,7 +26,7 @@ df_eval = df[valid_mask].copy()
 df_eval['material_ratio'] = df_eval['Material_and_skilled_Wages'] / df_eval['Total_Exp']
 df_eval['admin_ratio'] = df_eval['Total_Adm_Expenditure'] / df_eval['Total_Exp']
 df_eval['wage_ratio'] = df_eval['Wages'] / df_eval['Total_Exp']
-df_eval['cost_per_day'] = df_eval['Total_Exp'] / df_eval['Persondays_of_Central_Liability_so_far']
+df_eval['cost_per_day'] = df_eval['Total_Exp'] * 100000.0 / df_eval['Persondays_of_Central_Liability_so_far']
 
 features = ['material_ratio', 'admin_ratio', 'wage_ratio', 'cost_per_day']
 X = df_eval[features].fillna(0.0).values

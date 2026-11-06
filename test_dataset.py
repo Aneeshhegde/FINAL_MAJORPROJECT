@@ -1,10 +1,12 @@
+from pathlib import Path
 import pandas as pd
 import numpy as np
 import joblib
 
-csv_path = r'C:\Users\anees\Downloads\All_India_Labour_Allowence_DataSet.csv'
-model_path = r'C:\Users\anees\Downloads\MAJOR PROJECT\mgnrega-hybrid\backend\models\isolation_forest.pkl'
-scaler_path = r'C:\Users\anees\Downloads\MAJOR PROJECT\mgnrega-hybrid\backend\models\scaler.pkl'
+PROJECT_ROOT = Path(__file__).resolve().parent
+csv_path = PROJECT_ROOT / 'backend' / 'data' / 'mgnrega.csv'
+model_path = PROJECT_ROOT / 'backend' / 'ml' / 'isolation_forest.pkl'
+scaler_path = PROJECT_ROOT / 'backend' / 'ml' / 'scaler.pkl'
 
 print("Reading CSV...")
 df = pd.read_csv(csv_path, nrows=1000)

@@ -1,0 +1,5 @@
+Configuration,Precision (%),Recall (%),F1-Score (%),False Positives,False Negatives,ROC-AUC (%)
+A. Isolation Forest Only (Raw Baseline),76.74,61.95,68.56,20673,41898,81.4
+B. Isolation Forest + Calibrated Boundary (tau = -0.0150),80.98,54.96,65.48,14214,49591,81.4
+C. Isolation Forest + Confirmation Condition Filter,88.55,54.96,67.82,7826,49591,81.4
+D. Full GovGuard AI (Boundary + Confirmation + Safety Nets),91.92,80.86,86.04,7826,21069,81.4

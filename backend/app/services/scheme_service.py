@@ -4,6 +4,10 @@ from typing import Dict, Any, List
 from datetime import datetime
 from .data_service import data_service
 
+# NOTE: PM-KISAN, PMAY, PDS, and SCHOLARSHIPS analysis methods in this file use
+# np.random / numpy RNG to generate simulated data. They do NOT use real data.
+# Every response from these methods includes "data_source": "simulated".
+
 class SchemeService:
     """
     Multi-scheme analytics engine for Indian Welfare Schemes:
@@ -156,6 +160,7 @@ class SchemeService:
             })
 
         return {
+            "data_source": "simulated",
             "scheme": "PM-KISAN",
             "state": state.upper(),
             "district": district.upper(),
@@ -325,6 +330,7 @@ class SchemeService:
             })
 
         return {
+            "data_source": "simulated",
             "scheme": "PMAY",
             "state": state.upper(),
             "district": district.upper(),
@@ -488,6 +494,7 @@ class SchemeService:
             })
 
         return {
+            "data_source": "simulated",
             "scheme": "PDS",
             "state": state.upper(),
             "district": district.upper(),
@@ -650,6 +657,7 @@ class SchemeService:
             })
 
         return {
+            "data_source": "simulated",
             "scheme": "SCHOLARSHIPS",
             "state": state.upper(),
             "district": district.upper(),

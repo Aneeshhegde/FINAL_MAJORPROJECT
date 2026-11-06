@@ -18,10 +18,7 @@ class Settings:
     SCALER_PATH: Path = BACKEND_DIR / "ml" / "scaler.pkl"
     
     # API Key for data.gov.in
-    DATA_GOV_IN_API_KEY: str = os.getenv(
-        "DATA_GOV_IN_API_KEY", 
-        "579b464db66ec23bdd000001aef5b919750548994937b47cf0feca19"
-    )
+    DATA_GOV_IN_API_KEY: str = os.getenv("DATA_GOV_IN_API_KEY", "")
     
     # Rules Thresholds for MGNREGA
     MATERIAL_RATIO_THRESHOLD: float = 0.40  # Statutory 60:40 wage:material norm

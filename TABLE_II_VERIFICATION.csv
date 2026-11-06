@@ -1,0 +1,6 @@
+Test Case,Injected Parameters,Ground Truth,Paper Prediction & Score,Actual Prediction & Score,Status
+Extreme Material Skew,Material Ratio = 85% (Limit 40%),Anomaly,ANOMALY (95.0 / 100 CRITICAL),ANOMALY (95.0 / 100 CRITICAL),MATCH
+Administrative Embezzlement,Admin Ratio = 35% (Limit 10%),Anomaly,ANOMALY (95.0 / 100 CRITICAL),ANOMALY (95.0 / 100 CRITICAL),MATCH
+Unit Cost Inflation,"Cost/day = ₹1,450 (Limit ₹450)",Anomaly,ANOMALY (95.0 / 100 CRITICAL),ANOMALY (95.0 / 100 CRITICAL),MATCH
+Multi-Violation Budget Dump,Simultaneous Extreme Breaches,Anomaly,ANOMALY (95.0 / 100 CRITICAL),ANOMALY (95.0 / 100 CRITICAL),MATCH
+Honest Compliant Baseline,"Mat=22%, Admin=4%, ₹222/day",Normal,NORMAL (24.5 / 100 LOW RISK),NORMAL (24.5 / 100 LOW),MATCH

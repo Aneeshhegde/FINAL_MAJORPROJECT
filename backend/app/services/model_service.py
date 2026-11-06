@@ -87,6 +87,8 @@ class ModelService:
         X_scaled = self.scaler.transform(X)
 
         # Decision function: lower values mean more anomalous
+        # d(x) = score_samples - offset_ (sklearn internal). Lower d(x) → more anomalous.
+        # offset_ is determined by contamination parameter. NOT "0.5 - score".
         decision_scores = self.model.decision_function(X_scaled)
 
         # High-Confidence Anomaly Trigger (Precision >= 91.9%)

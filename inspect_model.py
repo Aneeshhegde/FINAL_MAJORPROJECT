@@ -1,10 +1,12 @@
+from pathlib import Path
 import joblib
 import pandas as pd
 import numpy as np
 import os
 
-model_path = r'C:\Users\anees\Downloads\MAJOR PROJECT\mgnrega-hybrid\backend\models\isolation_forest.pkl'
-scaler_path = r'C:\Users\anees\Downloads\MAJOR PROJECT\mgnrega-hybrid\backend\models\scaler.pkl'
+PROJECT_ROOT = Path(__file__).resolve().parent
+model_path = PROJECT_ROOT / 'backend' / 'ml' / 'isolation_forest.pkl'
+scaler_path = PROJECT_ROOT / 'backend' / 'ml' / 'scaler.pkl'
 
 print("Checking model files:")
 print("Model exists:", os.path.exists(model_path))
